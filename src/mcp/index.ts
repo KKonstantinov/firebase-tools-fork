@@ -1,31 +1,25 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import * as express from "express";
-import * as cors from "cors";
+/* @mcp-codemod-error "SSEServerTransport" is used as both a value and a type; converting @modelcontextprotocol/server-legacy/sse to a dynamic import would remove the static import and orphan the type-position usage (TS2304). Migrate the project to ESM, or split the usages — keep the type via a separate "import type" and load the value via dynamic import() inside an async function. See docs/migration/upgrade-to-v2.md. */
+import { SSEServerTransport } from "@modelcontextprotocol/server-legacy/sse";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+/* @mcp-codemod-error @modelcontextprotocol/server is ESM-only and this project is CommonJS, so this static import fails at load (ERR_PACKAGE_PATH_NOT_EXPORTED). "Server" is used in a synchronous context (line 93) that cannot await a dynamic import. Restructure so the value loads inside an async function (then re-run to auto-convert), or migrate the project to ESM. See docs/migration/upgrade-to-v2.md. */
 import {
+  Server,
   CallToolRequest,
-  CallToolRequestSchema,
   CallToolResult,
-  ErrorCode,
   GetPromptRequest,
-  GetPromptRequestSchema,
   GetPromptResult,
-  ListPromptsRequestSchema,
   ListPromptsResult,
-  ListResourcesRequestSchema,
   ListResourcesResult,
-  ListResourceTemplatesRequestSchema,
   ListResourceTemplatesResult,
-  ListToolsRequestSchema,
   ListToolsResult,
   LoggingLevel,
-  McpError,
+  ProtocolError,
   ReadResourceRequest,
-  ReadResourceRequestSchema,
   ReadResourceResult,
-  SetLevelRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+  ProtocolErrorCode,
+} from "@modelcontextprotocol/server";
+import * as express from "express";
+import * as cors from "cors";
 import * as crossSpawn from "cross-spawn";
 import { existsSync } from "node:fs";
 import * as experiments from "../experiments";
@@ -121,16 +115,16 @@ export class FirebaseMcpServer {
       resources: {},
     });
 
-    this.server.setRequestHandler(ListToolsRequestSchema, this.mcpListTools.bind(this));
-    this.server.setRequestHandler(CallToolRequestSchema, this.mcpCallTool.bind(this));
-    this.server.setRequestHandler(ListPromptsRequestSchema, this.mcpListPrompts.bind(this));
-    this.server.setRequestHandler(GetPromptRequestSchema, this.mcpGetPrompt.bind(this));
+    this.server.setRequestHandler("tools/list", this.mcpListTools.bind(this));
+    this.server.setRequestHandler("tools/call", this.mcpCallTool.bind(this));
+    this.server.setRequestHandler("prompts/list", this.mcpListPrompts.bind(this));
+    this.server.setRequestHandler("prompts/get", this.mcpGetPrompt.bind(this));
     this.server.setRequestHandler(
-      ListResourceTemplatesRequestSchema,
+      "resources/templates/list",
       this.mcpListResourceTemplates.bind(this),
     );
-    this.server.setRequestHandler(ListResourcesRequestSchema, this.mcpListResources.bind(this));
-    this.server.setRequestHandler(ReadResourceRequestSchema, this.mcpReadResource.bind(this));
+    this.server.setRequestHandler("resources/list", this.mcpListResources.bind(this));
+    this.server.setRequestHandler("resources/read", this.mcpReadResource.bind(this));
     const onInitialized = (): void => {
       const clientInfo = this.server.getClientVersion();
       this.clientInfo = clientInfo;
@@ -152,7 +146,7 @@ export class FirebaseMcpServer {
       void onInitialized();
     };
 
-    this.server.setRequestHandler(SetLevelRequestSchema, async ({ params }) => {
+    this.server.setRequestHandler("logging/setLevel", async ({ params }) => {
       this.currentLogLevel = params.level;
       return {};
     });
@@ -499,8 +493,8 @@ export class FirebaseMcpServer {
 
     const resolved = await resolveResource(req.params.uri, resourceCtx);
     if (!resolved) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
+      throw new ProtocolError(
+        ProtocolErrorCode.InvalidParams,
         `Resource '${req.params.uri}' could not be found.`,
       );
     }

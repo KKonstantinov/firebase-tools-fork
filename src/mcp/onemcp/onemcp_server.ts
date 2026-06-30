@@ -1,17 +1,19 @@
 import {
   CallToolResult,
-  CallToolResultSchema,
-  ListToolsResultSchema,
   JSONRPCResultResponse,
   JSONRPCRequest,
   ListToolsRequest,
   CallToolRequest,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
 import { Client } from "../../apiv2";
 import { ServerTool, ServerToolMeta } from "../tool";
 import { McpContext, ServerFeature } from "../types";
 import { FirebaseError } from "../../error";
 import { ensure } from "../../ensureApiEnabled";
+import type * as _McpCoreTypes from "@modelcontextprotocol/core";
+// eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+const _mcpDynImport = new Function("s", "return import(s)") as <T>(s: string) => Promise<T>;
+const _mcpCore = _mcpDynImport<typeof _McpCoreTypes>("@modelcontextprotocol/core");
 
 /**
  * OneMcpServer encapsulates the logic for interacting with a remote MCP server.
@@ -43,6 +45,7 @@ export class OneMcpServer {
    * Fetches tools from the remote MCP server.
    */
   async listTools(): Promise<ServerTool[]> {
+    const { ListToolsResultSchema } = await _mcpCore;
     try {
       const res = await this.listClient.post<
         JSONRPCRequest & ListToolsRequest,
@@ -85,6 +88,7 @@ export class OneMcpServer {
     },
     ctx: McpContext,
   ): Promise<CallToolResult> {
+    const { CallToolResultSchema } = await _mcpCore;
     // TODO: Optimize this to not call ensure on every tool call.
     await ensure(ctx.projectId, this.serverUrl, this.feature, /* silent=*/ true);
     try {

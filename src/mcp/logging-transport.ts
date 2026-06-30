@@ -1,5 +1,6 @@
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { JSONRPCMessage } from "@modelcontextprotocol/server";
+/* @mcp-codemod-error @modelcontextprotocol/server/stdio is ESM-only and this project is CommonJS, so this static import fails at load (ERR_PACKAGE_PATH_NOT_EXPORTED). "StdioServerTransport" is used in a synchronous context (line 6) that cannot await a dynamic import. Restructure so the value loads inside an async function (then re-run to auto-convert), or migrate the project to ESM. See docs/migration/upgrade-to-v2.md. */
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { appendFileSync } from "fs";
 import { appendFile } from "fs/promises";
 
